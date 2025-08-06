@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { DollarSign, Plus, TrendingUp, TrendingDown, History } from "lucide-react";
+import { DollarSign, Plus, TrendingUp, TrendingDown, History, Camera } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ReceiptScanner, AllocationResult } from "@/components/ReceiptScanner";
+import { toast } from "sonner";
 
 interface Transaction {
   id: string;
@@ -14,7 +16,8 @@ interface Transaction {
 }
 
 const Finances = () => {
-  const [transactions] = useState<Transaction[]>([
+  const [showReceiptScanner, setShowReceiptScanner] = useState(false);
+  const [transactions, setTransactions] = useState<Transaction[]>([
     {
       id: '1',
       type: 'expense',
@@ -45,6 +48,68 @@ const Finances = () => {
 
   const yourBalance = 42.50;
   const roommateBalance = -42.50;
+
+  const handleReceiptComplete = (allocation: AllocationResult) => {
+    const newTransactions: Transaction[] = [];
+    
+    // Add shared expenses (split)
+    if (allocation.shared.length > 0) {
+      const sharedTotal = allocation.totals.shared;
+      newTransactions.push({
+        id: `receipt-shared-${Date.now()}`,
+        type: 'expense',
+        amount: sharedTotal,
+        description: `Shared groceries (${allocation.shared.length} items)`,
+        date: new Date().toISOString().split('T')[0],
+        paidBy: 'user1', // Assuming current user paid
+        splitWith: 'both'
+      });
+    }
+
+    // Add user's personal expenses
+    if (allocation.me.length > 0) {
+      newTransactions.push({
+        id: `receipt-personal-${Date.now()}`,
+        type: 'expense',
+        amount: allocation.totals.me,
+        description: `Personal groceries (${allocation.me.length} items)`,
+        date: new Date().toISOString().split('T')[0],
+        paidBy: 'user1',
+        splitWith: 'user1'
+      });
+    }
+
+    // Add roommate's expenses (if any were allocated)
+    if (allocation.roommate.length > 0) {
+      newTransactions.push({
+        id: `receipt-roommate-${Date.now()}`,
+        type: 'expense',
+        amount: allocation.totals.roommate,
+        description: `Roommate groceries (${allocation.roommate.length} items)`,
+        date: new Date().toISOString().split('T')[0],
+        paidBy: 'user1', // User paid but it's for roommate
+        splitWith: 'user2'
+      });
+    }
+
+    setTransactions(prev => [...newTransactions, ...prev]);
+    setShowReceiptScanner(false);
+    
+    toast.success(`Added ${newTransactions.length} transaction(s) from receipt`);
+  };
+
+  if (showReceiptScanner) {
+    return (
+      <div className="min-h-screen bg-gradient-soft p-4 pb-24">
+        <div className="max-w-md mx-auto">
+          <ReceiptScanner 
+            onComplete={handleReceiptComplete}
+            onCancel={() => setShowReceiptScanner(false)}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-soft p-4 pb-24 space-y-6">
@@ -93,6 +158,14 @@ const Finances = () => {
             Settle Debt
           </Button>
         </div>
+        <Button 
+          onClick={() => setShowReceiptScanner(true)}
+          variant="outline" 
+          className="w-full shadow-soft border-2 border-dashed border-primary/30 hover:border-primary/50"
+        >
+          <Camera className="mr-2 h-4 w-4" />
+          Scan Receipt
+        </Button>
       </div>
 
       {/* Recent Transactions */}
