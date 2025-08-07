@@ -1,57 +1,10 @@
 import { Droplets, Calendar, Plus, CheckCircle, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
-interface Plant {
-  id: string;
-  name: string;
-  species: string;
-  location: string;
-  lastWatered: string;
-  nextWatering: string;
-  wateredBy: 'user1' | 'user2';
-  wateringFrequency: number; // days
-  status: 'healthy' | 'needs-water' | 'overdue';
-  notes?: string;
-}
+import { usePlants } from "@/hooks/usePlants";
 
 const Plants = () => {
-  const plants: Plant[] = [
-    {
-      id: '1',
-      name: 'Monstera',
-      species: 'Monstera Deliciosa',
-      location: 'Living Room',
-      lastWatered: '2024-01-13',
-      nextWatering: '2024-01-17',
-      wateredBy: 'user1',
-      wateringFrequency: 7,
-      status: 'overdue',
-      notes: 'Loves bright indirect light'
-    },
-    {
-      id: '2',
-      name: 'Snake Plant',
-      species: 'Sansevieria',
-      location: 'Bedroom',
-      lastWatered: '2024-01-10',
-      nextWatering: '2024-01-24',
-      wateredBy: 'user2',
-      wateringFrequency: 14,
-      status: 'healthy'
-    },
-    {
-      id: '3',
-      name: 'Pothos',
-      species: 'Epipremnum Aureum',
-      location: 'Kitchen',
-      lastWatered: '2024-01-15',
-      nextWatering: '2024-01-18',
-      wateredBy: 'user1',
-      wateringFrequency: 5,
-      status: 'needs-water'
-    }
-  ];
+  const { plants, plantsNeedingWater, isLoading, waterPlant } = usePlants();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -80,13 +33,6 @@ const Plants = () => {
     }
   };
 
-  const markWatered = (plantId: string) => {
-    console.log(`Marked plant ${plantId} as watered`);
-  };
-
-  const plantsNeedingWater = plants.filter(plant => 
-    plant.status === 'overdue' || plant.status === 'needs-water'
-  );
 
   return (
     <div className="min-h-screen bg-gradient-soft p-4 pb-24 space-y-6">
@@ -117,7 +63,7 @@ const Plants = () => {
                     {getStatusIcon(plant.status)}
                     <span>{getStatusText(plant.status)}</span>
                   </span>
-                  <Button size="sm" onClick={() => markWatered(plant.id)} className="bg-gradient-primary text-primary-foreground">
+                  <Button size="sm" onClick={() => waterPlant(plant.id)} className="bg-gradient-primary text-primary-foreground">
                     <Droplets className="h-4 w-4" />
                   </Button>
                 </div>
@@ -142,7 +88,7 @@ const Plants = () => {
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <h3 className="font-semibold text-foreground">{plant.name}</h3>
-                  <p className="text-sm text-muted-foreground">{plant.species}</p>
+                  <p className="text-sm text-muted-foreground">{plant.species || 'No species specified'}</p>
                 </div>
                 <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1 ${getStatusColor(plant.status)}`}>
                   {getStatusIcon(plant.status)}
@@ -153,31 +99,41 @@ const Plants = () => {
               <div className="grid grid-cols-2 gap-3 text-sm mb-3">
                 <div>
                   <p className="text-muted-foreground mb-1">Location</p>
-                  <p className="text-foreground">{plant.location}</p>
+                  <p className="text-foreground">{plant.location || 'No location set'}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground mb-1">Watering frequency</p>
-                  <p className="text-foreground">Every {plant.wateringFrequency} days</p>
+                  <p className="text-foreground">Every {plant.watering_frequency_days} days</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-sm mb-3">
                 <div>
                   <p className="text-muted-foreground mb-1">Last watered</p>
-                  <div className="flex items-center space-x-1">
-                    <Calendar className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-foreground">{new Date(plant.lastWatered).toLocaleDateString()}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    by {plant.wateredBy === 'user1' ? 'You' : 'Roommate'}
-                  </p>
+                  {plant.last_watered_date ? (
+                    <>
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-foreground">{new Date(plant.last_watered_date).toLocaleDateString()}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        by {plant.last_watered_by ? 'You' : 'Roommate'}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-foreground">Never watered</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-muted-foreground mb-1">Next watering</p>
-                  <div className="flex items-center space-x-1">
-                    <Calendar className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-foreground">{new Date(plant.nextWatering).toLocaleDateString()}</span>
-                  </div>
+                  {plant.next_watering_date ? (
+                    <div className="flex items-center space-x-1">
+                      <Calendar className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-foreground">{new Date(plant.next_watering_date).toLocaleDateString()}</span>
+                    </div>
+                  ) : (
+                    <p className="text-foreground">Not scheduled</p>
+                  )}
                 </div>
               </div>
 
@@ -189,7 +145,7 @@ const Plants = () => {
               )}
 
               <Button 
-                onClick={() => markWatered(plant.id)} 
+                onClick={() => waterPlant(plant.id)} 
                 className="w-full bg-gradient-primary text-primary-foreground"
                 size="sm"
               >

@@ -3,49 +3,29 @@ import { Plus, Check, User, Users, Trash2, Upload } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-interface ShoppingItem {
-  id: string;
-  name: string;
-  assignedTo: 'both' | 'user1' | 'user2';
-  completed: boolean;
-  cost?: number;
-}
+import { useShopping } from "@/hooks/useShopping";
 
 const Shopping = () => {
-  const [items, setItems] = useState<ShoppingItem[]>([
-    { id: '1', name: 'Milk', assignedTo: 'user1', completed: false, cost: 1.50 },
-    { id: '2', name: 'Bread', assignedTo: 'both', completed: false, cost: 2.20 },
-    { id: '3', name: 'Apples', assignedTo: 'user2', completed: true, cost: 3.00 },
-  ]);
   const [newItem, setNewItem] = useState('');
+  const { 
+    items, 
+    isLoading, 
+    addItem: addItemMutation, 
+    toggleItem, 
+    deleteItem, 
+    totalCost 
+  } = useShopping();
 
   const addItem = () => {
     if (newItem.trim()) {
-      setItems([
-        ...items,
-        {
-          id: Date.now().toString(),
-          name: newItem,
-          assignedTo: 'both',
-          completed: false,
-        }
-      ]);
+      addItemMutation({
+        name: newItem,
+      });
       setNewItem('');
     }
   };
 
-  const toggleItem = (id: string) => {
-    setItems(items.map(item => 
-      item.id === id ? { ...item, completed: !item.completed } : item
-    ));
-  };
-
-  const deleteItem = (id: string) => {
-    setItems(items.filter(item => item.id !== id));
-  };
-
-  const getAssignmentIcon = (assignment: string) => {
+  const getAssignmentIcon = (assignment?: string) => {
     switch (assignment) {
       case 'both': return <Users className="h-4 w-4 text-primary" />;
       case 'user1': return <User className="h-4 w-4 text-accent-peach-foreground" />;
@@ -53,8 +33,6 @@ const Shopping = () => {
       default: return <Users className="h-4 w-4" />;
     }
   };
-
-  const totalCost = items.reduce((sum, item) => sum + (item.cost || 0), 0);
 
   return (
     <div className="min-h-screen bg-gradient-soft p-4 pb-24 space-y-6">
@@ -133,7 +111,7 @@ const Shopping = () => {
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                {getAssignmentIcon(item.assignedTo)}
+                {getAssignmentIcon(item.assigned_to)}
                 <button 
                   onClick={() => deleteItem(item.id)}
                   className="text-muted-foreground hover:text-destructive transition-colors"

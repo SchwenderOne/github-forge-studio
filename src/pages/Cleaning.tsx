@@ -1,6 +1,7 @@
 import { Calendar, CheckCircle, Clock, User } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useRooms } from "@/hooks/useRooms";
 
 interface Room {
   id: string;
@@ -13,44 +14,7 @@ interface Room {
 }
 
 const Cleaning = () => {
-  const rooms: Room[] = [
-    {
-      id: '1',
-      name: 'Bathroom',
-      lastCleaned: '2024-01-10',
-      lastCleanedBy: 'user2',
-      nextDue: '2024-01-17',
-      nextAssignedTo: 'user1',
-      priority: 'overdue'
-    },
-    {
-      id: '2',
-      name: 'Kitchen',
-      lastCleaned: '2024-01-14',
-      lastCleanedBy: 'user1',
-      nextDue: '2024-01-18',
-      nextAssignedTo: 'user2',
-      priority: 'high'
-    },
-    {
-      id: '3',
-      name: 'Living Room',
-      lastCleaned: '2024-01-12',
-      lastCleanedBy: 'user1',
-      nextDue: '2024-01-19',
-      nextAssignedTo: 'user1',
-      priority: 'medium'
-    },
-    {
-      id: '4',
-      name: 'Hallway',
-      lastCleaned: '2024-01-13',
-      lastCleanedBy: 'user2',
-      nextDue: '2024-01-20',
-      nextAssignedTo: 'user2',
-      priority: 'low'
-    }
-  ];
+  const { rooms, todaysTasks, isLoading, markCleaned } = useRooms();
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -72,9 +36,6 @@ const Cleaning = () => {
     }
   };
 
-  const markCleaned = (roomId: string) => {
-    console.log(`Marked room ${roomId} as cleaned`);
-  };
 
   return (
     <div className="min-h-screen bg-gradient-soft p-4 pb-24 space-y-6">
@@ -93,19 +54,19 @@ const Cleaning = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {rooms.filter(room => room.priority === 'overdue' || room.priority === 'high').map((room) => (
+          {todaysTasks.map((room) => (
             <div key={room.id} className="flex items-center justify-between p-3 bg-background/50 rounded-lg mb-3">
               <div>
                 <p className="font-medium text-foreground">{room.name}</p>
                 <p className="text-sm text-muted-foreground">
-                  Assigned to: {room.nextAssignedTo === 'user1' ? 'You' : 'Roommate'}
+                  Assigned to: {room.next_assigned_to === 'user1' ? 'You' : 'Roommate'}
                 </p>
               </div>
               <div className="flex items-center space-x-2">
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(room.priority)}`}>
                   {getPriorityText(room.priority)}
                 </span>
-                {room.nextAssignedTo === 'user1' && (
+                {room.next_assigned_to === 'user1' && (
                   <Button size="sm" onClick={() => markCleaned(room.id)} className="bg-gradient-primary text-primary-foreground">
                     <CheckCircle className="h-4 w-4" />
                   </Button>
@@ -134,34 +95,40 @@ const Cleaning = () => {
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-muted-foreground mb-1">Last cleaned</p>
-                  <div className="flex items-center space-x-1">
-                    <Clock className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-foreground">{new Date(room.lastCleaned).toLocaleDateString()}</span>
-                  </div>
-                  <div className="flex items-center space-x-1 mt-1">
-                    <User className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-muted-foreground">
-                      {room.lastCleanedBy === 'user1' ? 'You' : 'Roommate'}
-                    </span>
-                  </div>
+                  {room.last_cleaned_date ? (
+                    <>
+                      <div className="flex items-center space-x-1">
+                        <Clock className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-foreground">{new Date(room.last_cleaned_date).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center space-x-1 mt-1">
+                        <User className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">
+                          {room.last_cleaned_by ? 'You' : 'Roommate'}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-foreground">Never cleaned</p>
+                  )}
                 </div>
                 
                 <div>
                   <p className="text-muted-foreground mb-1">Next due</p>
                   <div className="flex items-center space-x-1">
                     <Calendar className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-foreground">{new Date(room.nextDue).toLocaleDateString()}</span>
+                    <span className="text-foreground">Due soon</span>
                   </div>
                   <div className="flex items-center space-x-1 mt-1">
                     <User className="h-3 w-3 text-muted-foreground" />
                     <span className="text-muted-foreground">
-                      {room.nextAssignedTo === 'user1' ? 'You' : 'Roommate'}
+                      {room.next_assigned_to ? 'You' : 'Roommate'}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {room.nextAssignedTo === 'user1' && (
+              {room.next_assigned_to && (
                 <Button 
                   onClick={() => markCleaned(room.id)} 
                   className="w-full mt-3 bg-gradient-primary text-primary-foreground"

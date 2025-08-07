@@ -1,101 +1,58 @@
 import { useState } from "react";
-import { DollarSign, Plus, TrendingUp, TrendingDown, History, Camera } from "lucide-react";
+import { TrendingUp, TrendingDown, History, Camera } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ReceiptScanner, AllocationResult } from "@/components/ReceiptScanner";
+import { AddExpenseDialog } from "@/components/AddExpenseDialog";
+import { SettleDebtDialog } from "@/components/SettleDebtDialog";
+import { useFinances } from "@/hooks/useFinances";
 import { toast } from "sonner";
-
-interface Transaction {
-  id: string;
-  type: 'expense' | 'income' | 'settlement';
-  amount: number;
-  description: string;
-  date: string;
-  paidBy: 'user1' | 'user2';
-  splitWith?: 'user1' | 'user2' | 'both';
-}
 
 const Finances = () => {
   const [showReceiptScanner, setShowReceiptScanner] = useState(false);
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: '1',
-      type: 'expense',
-      amount: 45.50,
-      description: 'Groceries',
-      date: '2024-01-15',
-      paidBy: 'user1',
-      splitWith: 'both'
-    },
-    {
-      id: '2',
-      type: 'expense',
-      amount: 800.00,
-      description: 'Rent',
-      date: '2024-01-01',
-      paidBy: 'user2',
-      splitWith: 'both'
-    },
-    {
-      id: '3',
-      type: 'settlement',
-      amount: 22.75,
-      description: 'Grocery settlement',
-      date: '2024-01-16',
-      paidBy: 'user2',
-    }
-  ]);
-
-  const yourBalance = 42.50;
-  const roommateBalance = -42.50;
+  const { 
+    transactions, 
+    isLoading, 
+    addTransaction, 
+    userBalance, 
+    roommateBalance, 
+    monthlyExpenses 
+  } = useFinances();
 
   const handleReceiptComplete = (allocation: AllocationResult) => {
-    const newTransactions: Transaction[] = [];
-    
     // Add shared expenses (split)
     if (allocation.shared.length > 0) {
       const sharedTotal = allocation.totals.shared;
-      newTransactions.push({
-        id: `receipt-shared-${Date.now()}`,
+      addTransaction({
         type: 'expense',
         amount: sharedTotal,
         description: `Shared groceries (${allocation.shared.length} items)`,
-        date: new Date().toISOString().split('T')[0],
-        paidBy: 'user1', // Assuming current user paid
-        splitWith: 'both'
+        split_with: 'both'
       });
     }
 
     // Add user's personal expenses
     if (allocation.me.length > 0) {
-      newTransactions.push({
-        id: `receipt-personal-${Date.now()}`,
+      addTransaction({
         type: 'expense',
         amount: allocation.totals.me,
         description: `Personal groceries (${allocation.me.length} items)`,
-        date: new Date().toISOString().split('T')[0],
-        paidBy: 'user1',
-        splitWith: 'user1'
+        split_with: 'user'
       });
     }
 
     // Add roommate's expenses (if any were allocated)
     if (allocation.roommate.length > 0) {
-      newTransactions.push({
-        id: `receipt-roommate-${Date.now()}`,
+      addTransaction({
         type: 'expense',
         amount: allocation.totals.roommate,
         description: `Roommate groceries (${allocation.roommate.length} items)`,
-        date: new Date().toISOString().split('T')[0],
-        paidBy: 'user1', // User paid but it's for roommate
-        splitWith: 'user2'
+        split_with: 'roommate'
       });
     }
 
-    setTransactions(prev => [...newTransactions, ...prev]);
     setShowReceiptScanner(false);
-    
-    toast.success(`Added ${newTransactions.length} transaction(s) from receipt`);
+    toast.success(`Added transactions from receipt`);
   };
 
   if (showReceiptScanner) {
@@ -127,8 +84,8 @@ const Finances = () => {
               <TrendingUp className="h-5 w-5 text-primary-foreground" />
             </div>
             <p className="text-sm text-muted-foreground">Your Balance</p>
-            <p className={`font-bold text-lg ${yourBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>
-              {yourBalance >= 0 ? '+' : ''}€{yourBalance.toFixed(2)}
+            <p className={`font-bold text-lg ${userBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>
+              {userBalance >= 0 ? '+' : ''}€{userBalance.toFixed(2)}
             </p>
           </CardContent>
         </Card>
@@ -149,14 +106,8 @@ const Finances = () => {
       {/* Quick Actions */}
       <div className="max-w-md mx-auto space-y-3">
         <div className="grid grid-cols-2 gap-3">
-          <Button className="bg-gradient-primary text-primary-foreground border-0 shadow-soft">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Expense
-          </Button>
-          <Button variant="secondary" className="shadow-soft">
-            <DollarSign className="mr-2 h-4 w-4" />
-            Settle Debt
-          </Button>
+          <AddExpenseDialog />
+          <SettleDebtDialog />
         </div>
         <Button 
           onClick={() => setShowReceiptScanner(true)}
@@ -184,11 +135,11 @@ const Finances = () => {
                 <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                   <span>{new Date(transaction.date).toLocaleDateString()}</span>
                   <span>•</span>
-                  <span>Paid by {transaction.paidBy === 'user1' ? 'You' : 'Roommate'}</span>
-                  {transaction.splitWith && (
+                  <span>Paid by You</span>
+                  {transaction.split_with && (
                     <>
                       <span>•</span>
-                      <span>Split {transaction.splitWith === 'both' ? '50/50' : 'individually'}</span>
+                      <span>Split {transaction.split_with === 'both' ? '50/50' : 'individually'}</span>
                     </>
                   )}
                 </div>
@@ -218,11 +169,11 @@ const Finances = () => {
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
             <div className="text-center">
-              <p className="text-2xl font-bold text-foreground">€868</p>
+              <p className="text-2xl font-bold text-foreground">€{monthlyExpenses.toFixed(2)}</p>
               <p className="text-sm text-muted-foreground">Total Expenses</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-primary">€434</p>
+              <p className="text-2xl font-bold text-primary">€{(monthlyExpenses / 2).toFixed(2)}</p>
               <p className="text-sm text-muted-foreground">Your Share</p>
             </div>
           </div>
