@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useShopping } from "@/hooks/useShopping";
+import { usePurchases } from "@/hooks/usePurchases";
+import { AddPurchaseDialog } from "@/components/AddPurchaseDialog";
 
 const Shopping = () => {
   const [newItem, setNewItem] = useState('');
@@ -15,6 +17,7 @@ const Shopping = () => {
     deleteItem, 
     totalCost 
   } = useShopping();
+  const { purchases, isLoading: isLoadingPurchases } = usePurchases();
 
   const addItem = () => {
     if (newItem.trim()) {
@@ -74,9 +77,9 @@ const Shopping = () => {
       {/* Upload PDF */}
       <Card className="max-w-md mx-auto bg-gradient-card shadow-card border-0">
         <CardContent className="p-4">
-          <Button variant="secondary" className="w-full">
+          <Button variant="secondary" className="w-full" disabled>
             <Upload className="mr-2 h-4 w-4" />
-            Upload PDF Shopping List
+            Upload PDF Shopping List (coming soon)
           </Button>
         </CardContent>
       </Card>
@@ -137,27 +140,34 @@ const Shopping = () => {
 
       {/* Long-term Purchases */}
       <Card className="max-w-md mx-auto bg-gradient-card shadow-card border-0">
-        <CardHeader>
+        <CardHeader className="flex items-center justify-between">
           <CardTitle className="text-lg text-foreground">Long-term Purchases</CardTitle>
+          <AddPurchaseDialog />
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            <div className="p-3 bg-background/50 rounded-lg">
-              <div className="flex justify-between items-start mb-2">
-                <span className="font-medium text-foreground">New Sofa</span>
-                <span className="text-sm text-muted-foreground">Need by: March</span>
-              </div>
-              <p className="text-sm text-muted-foreground mb-2">€800 - Split 50/50</p>
-              <div className="flex justify-between text-xs">
-                <span>You: €400</span>
-                <span>Roommate: €400</span>
-              </div>
+          {isLoadingPurchases ? (
+            <div className="text-center text-muted-foreground py-6">Loading purchases...</div>
+          ) : purchases.length === 0 ? (
+            <div className="text-center text-muted-foreground py-6">No purchases yet</div>
+          ) : (
+            <div className="space-y-3">
+              {purchases.map((p) => (
+                <div key={p.id} className="p-3 bg-background/50 rounded-lg">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="font-medium text-foreground">{p.name}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {p.needed_by ? new Date(p.needed_by).toLocaleDateString() : 'No deadline'}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-2">€{Number(p.total_cost).toFixed(2)} - Split 50/50</p>
+                  <div className="flex justify-between text-xs">
+                    <span>You: €{Number(p.user1_share).toFixed(2)}</span>
+                    <span>Roommate: €{Number(p.user2_share).toFixed(2)}</span>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-          <Button variant="outline" className="w-full mt-3">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Purchase
-          </Button>
+          )}
         </CardContent>
       </Card>
     </div>
