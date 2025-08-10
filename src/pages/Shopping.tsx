@@ -34,6 +34,17 @@ const Shopping = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-soft p-8 pb-24 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading shopping list...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-soft p-4 pb-24 space-y-6">
       {/* Header */}
@@ -111,7 +122,7 @@ const Shopping = () => {
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                {getAssignmentIcon(item.assigned_to)}
+                {getAssignmentIcon(item.assigned_to as any)}
                 <button 
                   onClick={() => deleteItem(item.id)}
                   className="text-muted-foreground hover:text-destructive transition-colors"

@@ -2,9 +2,11 @@ import { Droplets, Calendar, Plus, CheckCircle, AlertCircle } from "lucide-react
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { usePlants } from "@/hooks/usePlants";
+import { useAuth } from "@/hooks/useAuth";
 
 const Plants = () => {
   const { plants, plantsNeedingWater, isLoading, waterPlant } = usePlants();
+  const { user } = useAuth();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -33,6 +35,16 @@ const Plants = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-soft p-8 pb-24 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading plants...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-soft p-4 pb-24 space-y-6">
@@ -117,7 +129,7 @@ const Plants = () => {
                         <span className="text-foreground">{new Date(plant.last_watered_date).toLocaleDateString()}</span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        by {plant.last_watered_by ? 'You' : 'Roommate'}
+                        by {plant.last_watered_by && plant.last_watered_by === user?.id ? 'You' : 'Roommate'}
                       </p>
                     </>
                   ) : (

@@ -6,10 +6,12 @@ import { ReceiptScanner, AllocationResult } from "@/components/ReceiptScanner";
 import { AddExpenseDialog } from "@/components/AddExpenseDialog";
 import { SettleDebtDialog } from "@/components/SettleDebtDialog";
 import { useFinances } from "@/hooks/useFinances";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 const Finances = () => {
   const [showReceiptScanner, setShowReceiptScanner] = useState(false);
+  const { user } = useAuth();
   const { 
     transactions, 
     isLoading, 
@@ -18,6 +20,8 @@ const Finances = () => {
     roommateBalance, 
     monthlyExpenses 
   } = useFinances();
+
+  const monthName = new Date().toLocaleString(undefined, { month: 'long' });
 
   const handleReceiptComplete = (allocation: AllocationResult) => {
     // Add shared expenses (split)
@@ -30,8 +34,6 @@ const Finances = () => {
         split_with: 'both'
       });
     }
-
-    // Add user's personal expenses
     if (allocation.me.length > 0) {
       addTransaction({
         type: 'expense',
@@ -40,8 +42,6 @@ const Finances = () => {
         split_with: 'user'
       });
     }
-
-    // Add roommate's expenses (if any were allocated)
     if (allocation.roommate.length > 0) {
       addTransaction({
         type: 'expense',
@@ -50,7 +50,6 @@ const Finances = () => {
         split_with: 'roommate'
       });
     }
-
     setShowReceiptScanner(false);
     toast.success(`Added transactions from receipt`);
   };
@@ -63,6 +62,17 @@ const Finances = () => {
             onComplete={handleReceiptComplete}
             onCancel={() => setShowReceiptScanner(false)}
           />
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-soft p-8 pb-24 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading finances...</p>
         </div>
       </div>
     );
@@ -135,7 +145,7 @@ const Finances = () => {
                 <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                   <span>{new Date(transaction.date).toLocaleDateString()}</span>
                   <span>•</span>
-                  <span>Paid by You</span>
+                  <span>Paid by {transaction.paid_by === user?.id ? 'You' : 'Roommate'}</span>
                   {transaction.split_with && (
                     <>
                       <span>•</span>
@@ -164,7 +174,7 @@ const Finances = () => {
       {/* Monthly Summary */}
       <Card className="max-w-md mx-auto bg-gradient-card shadow-card border-0">
         <CardHeader>
-          <CardTitle className="text-lg text-foreground">January Summary</CardTitle>
+          <CardTitle className="text-lg text-foreground">{monthName} Summary</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
